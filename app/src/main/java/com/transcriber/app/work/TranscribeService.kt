@@ -21,7 +21,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 
 /** Держит процесс живым, пока идёт распознавание, и показывает прогресс в уведомлении. */
@@ -62,7 +61,7 @@ class TranscribeService : Service() {
         scope.launch {
             val nm = getSystemService(NotificationManager::class.java)
             var prevActive = emptySet<String>()
-            app.jobs.jobs.conflate().collect { list ->
+            app.jobs.jobs.collect { list ->
                 val active = list.filter { it.isActive }
                 val nowIds = active.map { it.id }.toSet()
                 for (id in prevActive - nowIds) {
