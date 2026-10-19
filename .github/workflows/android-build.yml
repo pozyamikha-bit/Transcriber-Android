@@ -1,0 +1,47 @@
+name: Android build
+
+# Собирает APK на серверах GitHub: локально Android Studio / SDK не нужны.
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+env:
+  WHISPER_CPP_VERSION: v1.9.5
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch whisper.cpp
+        run: git clone --depth 1 --branch "$WHISPER_CPP_VERSION" https://github.com/ggml-org/whisper.cpp app/src/main/cpp/whisper.cpp
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Inspect APK
+        run: |
+          ls -la app/build/outputs/apk/release/
+          unzip -l app/build/outputs/apk/release/*.apk | grep -E "\.so$"
+          cp app/build/outputs/apk/release/app-release.apk Transcriber.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Transcriber-apk
+          path: Transcriber.apk
+          if-no-files-found: error

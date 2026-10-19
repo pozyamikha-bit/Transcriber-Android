@@ -1,0 +1,7 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- звуковая волна, переходящая в строки текста -->
+    <path android:fillColor="#FFFFFF" android:pathData="M30,48h4v12h-4z M37,42h4v24h-4z M44,36h4v36h-4z M51,44h4v20h-4z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M60,40h18v4h-18z M60,50h18v4h-18z M60,60h12v4h-12z" />
+</vector>
