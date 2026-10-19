@@ -94,4 +94,21 @@ class SmokeTest {
         ZipFile(File(dir, "document.docx")).use { z -> assertTrue(z.getEntry("word/document.xml") != null) }
         File(out, "video_job.txt").writeText(id)
     }
+
+    @Test
+    fun c_modelUrls() {
+        // все модели из списка действительно лежат на HuggingFace
+        val urls = Models.ALL.map { "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${it.file}" } +
+            "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin"
+        val bad = urls.filter { u ->
+            val c = java.net.URL(u).openConnection() as java.net.HttpURLConnection
+            c.requestMethod = "HEAD"
+            c.instanceFollowRedirects = false
+            val code = c.responseCode
+            c.disconnect()
+            log("url $code $u")
+            code !in 200..399
+        }
+        assertTrue("недоступны: $bad", bad.isEmpty())
+    }
 }
