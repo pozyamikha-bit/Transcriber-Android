@@ -15,7 +15,8 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk { abiFilters += listOf("arm64-v8a") }
+        // для автотеста на эмуляторе собираем x86_64 (-PtestAbi=x86_64), для телефона — arm64
+        ndk { abiFilters += listOf((project.findProperty("testAbi") as String?) ?: "arm64-v8a") }
         externalNativeBuild {
             cmake {
                 arguments += listOf("-DANDROID_STL=c++_shared", "-DCMAKE_BUILD_TYPE=Release")

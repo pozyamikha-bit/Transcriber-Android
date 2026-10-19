@@ -37,7 +37,7 @@ jobs:
           gradle-version: "8.7"
 
       - name: Build test APKs
-        run: gradle assembleDebug assembleDebugAndroidTest --no-daemon
+        run: gradle assembleDebug assembleDebugAndroidTest --no-daemon -PtestAbi=x86_64
 
       - name: Enable KVM
         run: |
