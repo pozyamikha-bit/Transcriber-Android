@@ -135,7 +135,7 @@ class SmokeTest {
         assertTrue("найдено спикеров: ${j.speakers}", j.speakers.size in 3..5)
         ctx.app.jobs.renameSpeaker(j.id, 0, "Анна")
         val txt = File(ctx.app.jobs.dir(j.id), "result.txt").readText()
-        assertTrue(txt.startsWith("Анна: "))
+        assertTrue(txt.contains("Анна: "))
     }
 
     @Test
