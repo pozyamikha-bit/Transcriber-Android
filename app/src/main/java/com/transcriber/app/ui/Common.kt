@@ -184,3 +184,42 @@ fun FileImage(file: File, modifier: Modifier = Modifier, maxSize: Int = 480) {
     if (b != null) Image(b, contentDescription = null, modifier = modifier, contentScale = ContentScale.Crop)
     else Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant))
 }
+
+/** Markdown для показа на экране: **жирный**, `код`, списки, чекбоксы, ## заголовки. */
+fun mdAnnotated(md: String): androidx.compose.ui.text.AnnotatedString =
+    androidx.compose.ui.text.buildAnnotatedString {
+        val lines = md.trim().lines()
+        lines.forEachIndexed { idx, raw ->
+            var line = raw
+            var heading = false
+            Regex("""^#{1,3}\s+(.*)""").matchEntire(line)?.let { line = it.groupValues[1]; heading = true }
+            Regex("""^(\s*)[-*]\s+(.*)""").matchEntire(line)?.let { m ->
+                val indent = if (m.groupValues[1].length >= 2) "    " else ""
+                val body = m.groupValues[2]
+                line = indent + when {
+                    body.startsWith("[ ] ") -> "☐ " + body.drop(4)
+                    body.startsWith("[x] ", true) -> "☑ " + body.drop(4)
+                    else -> (if (indent.isEmpty()) "• " else "◦ ") + body
+                }
+            }
+            if (Regex("""^\s*\|?\s*:?-{2,}.*""").matches(line) && line.contains("|")) return@forEachIndexed
+            if (line.trimStart().startsWith("|")) line = line.trim().trim('|').split("|").joinToString("  ·  ") { it.trim() }
+            if (heading) pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            var last = 0
+            for (m in Regex("""\*\*(.+?)\*\*|`(.+?)`""").findAll(line)) {
+                append(line.substring(last, m.range.first))
+                if (m.groupValues[1].isNotEmpty()) {
+                    pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+                    append(m.groupValues[1])
+                } else {
+                    pushStyle(androidx.compose.ui.text.SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace))
+                    append(m.groupValues[2])
+                }
+                pop()
+                last = m.range.last + 1
+            }
+            append(line.substring(last))
+            if (heading) pop()
+            if (idx < lines.lastIndex) append("\n")
+        }
+    }

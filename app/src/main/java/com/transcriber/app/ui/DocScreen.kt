@@ -115,7 +115,7 @@ fun DocScreen(id: String, onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (d.summary.isNotBlank()) Text(d.summary, style = MaterialTheme.typography.bodyMedium)
+                    if (d.summary.isNotBlank()) Text(mdAnnotated(d.summary), style = MaterialTheme.typography.bodyMedium)
                 }
             }
             itemsIndexed(d.sections) { i, sec ->
@@ -164,9 +164,12 @@ fun DocScreen(id: String, onBack: () -> Unit) {
                                 }
                             }
                         }
-                        Text(sec.body, style = MaterialTheme.typography.bodySmall, maxLines = 8, overflow = TextOverflow.Ellipsis)
+                        Text(mdAnnotated(sec.body), style = MaterialTheme.typography.bodyMedium, maxLines = 12, overflow = TextOverflow.Ellipsis)
                     }
                 }
+            }
+            if (d.appendix.isNotBlank()) item {
+                Text(mdAnnotated(d.appendix), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
