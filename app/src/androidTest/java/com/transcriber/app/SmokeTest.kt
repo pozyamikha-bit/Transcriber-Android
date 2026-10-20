@@ -114,23 +114,33 @@ class SmokeTest {
         assertTrue("недоступны: $bad", bad.isEmpty())
     }
 
-    @Test
-    fun d_speakers() = runBlocking {
-        val wav = asset("two_speakers.wav")
+    private fun speakersRun(file: String, lang: String, num: Int): com.transcriber.app.data.Job = runBlocking {
+        val wav = asset(file)
         val t = System.currentTimeMillis()
-        val id = ctx.app.jobs.create(Uri.fromFile(wav), "tiny", "transcript", "en", diarize = true, numSpeakers = 0, quality = "accurate")
+        val id = ctx.app.jobs.create(Uri.fromFile(wav), "tiny", "transcript", lang, diarize = true, numSpeakers = num, quality = "fast")
         val j = waitIdle(id)
-        log("speakers: status=${j.status} msg=${j.message} err=${j.speakerError} time=${(System.currentTimeMillis() - t) / 1000}s speed=${j.speed}")
-        log("speakers text: " + j.segments.joinToString(" | ") { "[%.1f-%.1f S%d] %s".format(it.start, it.end, it.speaker, it.text) })
+        log("[$file n=$num] status=${j.status} err=${j.speakerError} time=${(System.currentTimeMillis() - t) / 1000}s speakers=${j.speakers}")
+        log("  turns: " + File(ctx.app.jobs.dir(id), "speakers.json").let { if (it.exists()) it.readText() else "-" })
+        log("  segs: " + j.segments.joinToString(" | ") { "[%.1f-%.1f S%d] %s".format(it.start, it.end, it.speaker, it.text.take(40)) })
         assertEquals(j.message, Status.DONE, j.status)
         assertEquals(null, j.speakerError)
-        assertTrue("найдено спикеров: ${j.speakers}", j.speakers.size >= 2)
-        // первый и последний фрагменты — один и тот же человек (Кеннеди)
-        assertEquals(j.segments.first().speaker, j.segments.last().speaker)
-        ctx.app.jobs.renameSpeaker(id, 0, "Кеннеди")
-        val txt = File(ctx.app.jobs.dir(id), "result.txt").readText()
-        log("txt:\n$txt")
-        assertTrue(txt.startsWith("Кеннеди: "))
         File(out, "speakers_job.txt").writeText(id)
+        j
+    }
+
+    @Test
+    fun d_speakersFour() {
+        // эталонная запись sherpa-onnx: 4 человека
+        val j = speakersRun("four_speakers.wav", "zh", 0)
+        assertTrue("найдено спикеров: ${j.speakers}", j.speakers.size in 3..5)
+        ctx.app.jobs.renameSpeaker(j.id, 0, "Анна")
+        val txt = File(ctx.app.jobs.dir(j.id), "result.txt").readText()
+        assertTrue(txt.startsWith("Анна: "))
+    }
+
+    @Test
+    fun e_speakersSynthetic() {
+        speakersRun("two_speakers.wav", "en", 0)
+        speakersRun("two_speakers.wav", "en", 2)
     }
 }

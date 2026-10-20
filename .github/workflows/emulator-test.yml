@@ -31,6 +31,7 @@ jobs:
           ffmpeg -loglevel error -i app/src/androidTest/assets/jfk.wav -i she.wav -i app/src/androidTest/assets/jfk.wav \
             -filter_complex "[0]aresample=16000,aformat=channel_layouts=mono[a];[1]aresample=16000,aformat=channel_layouts=mono,apad=pad_dur=1[b];[2]aresample=16000,aformat=channel_layouts=mono[c];[a]apad=pad_dur=1[a1];[a1][b][c]concat=n=3:v=0:a=1[o]" \
             -map "[o]" app/src/androidTest/assets/two_speakers.wav
+          curl -sSfL -o app/src/androidTest/assets/four_speakers.wav https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/0-four-speakers-zh.wav
 
       - name: Fetch sherpa-onnx (speaker diarization)
         run: |

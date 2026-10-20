@@ -259,6 +259,10 @@ class JobManager(private val app: Context, private val settings: Settings) {
             val turns = Diarizer.run(app, samples, j.numSpeakers, settings.value.threads.coerceIn(1, Settings.maxThreads()), { p ->
                 update(id) { it.copy(message = "Определение спикеров… ${pct(p)}", progress = p) }
             }, isCancelled)
+            // разметка по времени — для отладки и будущего пересчёта
+            File(dir(id), "speakers.json").writeText(org.json.JSONArray().apply {
+                turns.forEach { put(JSONObject().put("start", it.start).put("end", it.end).put("speaker", it.speaker)) }
+            }.toString())
             Diarizer.assign(segs, turns)
         } catch (e: CancellationException) {
             throw e
