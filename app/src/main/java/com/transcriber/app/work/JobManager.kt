@@ -192,6 +192,12 @@ class JobManager(private val app: Context, private val settings: Settings) {
         val isCancelled = { id in cancelled }
         var keepVideo = false
         try {
+            // повышенный приоритет: в фоне Samsung и др. иначе отдают потоки медленным ядрам.
+            // Потоки ggml создаются из этого потока и наследуют приоритет.
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
+            } catch (_: Exception) {
+            }
             WhisperLib.resetCancel()
             val model = Models.get(j0.model)
             update(id, true) { it.copy(status = Status.PREPARING, message = "Подготовка…") }
@@ -240,6 +246,10 @@ class JobManager(private val app: Context, private val settings: Settings) {
             }
             update(id) { it.copy(status = Status.ERROR, message = msg) }
         } finally {
+            try {
+                android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            } catch (_: Exception) {
+            }
             pcm.delete()
             cancelled.remove(id)
             if (!keepVideo) input.delete()

@@ -15,6 +15,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -223,3 +225,42 @@ fun mdAnnotated(md: String): androidx.compose.ui.text.AnnotatedString =
             if (idx < lines.lastIndex) append("\n")
         }
     }
+
+
+/** Статус «без ограничений батареи», перепроверяется при возврате в приложение. */
+@Composable
+fun rememberUnrestricted(): Boolean {
+    val ctx = LocalContext.current
+    var v by remember { mutableStateOf(com.transcriber.app.work.Battery.unrestricted(ctx)) }
+    val owner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) v = com.transcriber.app.work.Battery.unrestricted(ctx)
+        }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    return v
+}
+
+@Composable
+fun BackgroundWarning() {
+    val ctx = LocalContext.current
+    androidx.compose.material3.Card(
+        Modifier.fillMaxWidth(),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+    ) {
+        androidx.compose.foundation.layout.Column(Modifier.padding(14.dp)) {
+            Text("В фоне обработка может замирать", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Система ограничивает приложение ради экономии батареи. Разрешите работу без ограничений. " +
+                    "На Samsung: Настройки → Приложения → Транскрибатор → Батарея → «Без ограничений».",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            androidx.compose.foundation.layout.Row {
+                androidx.compose.material3.TextButton(onClick = { com.transcriber.app.work.Battery.request(ctx) }) { Text("Разрешить") }
+                androidx.compose.material3.TextButton(onClick = { com.transcriber.app.work.Battery.openAppSettings(ctx) }) { Text("Настройки приложения") }
+            }
+        }
+    }
+}

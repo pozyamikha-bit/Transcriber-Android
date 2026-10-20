@@ -48,6 +48,7 @@ fun JobsScreen(onOpen: (String) -> Unit, onNew: () -> Unit, onSettings: () -> Un
     val ctx = LocalContext.current
     val jobs by ctx.app.jobs.jobs.collectAsState()
     val fmt = SimpleDateFormat("d MMM, HH:mm", Locale("ru"))
+    val unrestricted = rememberUnrestricted()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,6 +75,9 @@ fun JobsScreen(onOpen: (String) -> Unit, onNew: () -> Unit, onSettings: () -> Un
                 contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                if (jobs.any { it.isActive } && !unrestricted) {
+                    item { BackgroundWarning() }
+                }
                 items(jobs, key = { it.id }) { j ->
                     Card(Modifier.fillMaxWidth().clickable { onOpen(j.id) }) {
                         Column(Modifier.padding(14.dp)) {

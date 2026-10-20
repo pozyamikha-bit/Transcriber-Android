@@ -75,6 +75,7 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
     var reply by remember { mutableStateOf("") }
     var importing by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<Int?>(null) }
+    val unrestricted = rememberUnrestricted()
 
     if (job == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -113,6 +114,7 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (job.isActive && !unrestricted) item { BackgroundWarning() }
             item {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

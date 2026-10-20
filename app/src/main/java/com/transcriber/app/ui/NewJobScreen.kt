@@ -48,6 +48,7 @@ import com.transcriber.app.app
 import com.transcriber.app.data.Models
 import com.transcriber.app.data.Presets
 import com.transcriber.app.data.Settings
+import com.transcriber.app.work.Battery
 import kotlinx.coroutines.launch
 
 @Composable
@@ -147,6 +148,7 @@ fun NewJobScreen(initialUri: Uri?, onBack: () -> Unit, onCreated: (String) -> Un
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(
                     onClick = {
+                        if (!Battery.unrestricted(ctx)) Battery.request(ctx)
                         if (Build.VERSION.SDK_INT >= 33 &&
                             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
                         ) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS) else start()

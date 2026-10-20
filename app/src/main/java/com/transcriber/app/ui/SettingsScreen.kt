@@ -108,6 +108,14 @@ fun SettingsScreen(onBack: () -> Unit) {
             TextButton(onClick = { saveClaude(); toast(ctx, "Сохранено") }) { Text("Сохранить") }
 
             HorizontalDivider()
+            Text("Работа в фоне", style = MaterialTheme.typography.titleMedium)
+            if (rememberUnrestricted()) {
+                Text("✓ Без ограничений батареи — обработка не замирает при сворачивании.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                BackgroundWarning()
+            }
+
+            HorizontalDivider()
             Text("Распознавание", style = MaterialTheme.typography.titleMedium)
             Text("Потоков процессора: ${threads.toInt()}")
             Slider(
