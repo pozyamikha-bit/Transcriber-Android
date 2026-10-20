@@ -1,0 +1,19 @@
+audio: status=done msg=Готово time=175s
+audio text: [0.3-10.4] And so my fellow Americans ask not what your country can do for you. Ask what you can do for your country.
+vad model present: true
+video: status=awaiting msg=Ждёт ответа Claude segs=1
+candidates: [([(s01_1.jpg, 1.5), (s01_2.jpg, 5.7)], [s01_1.jpg]), ([(s02_1.jpg, 6.5)], [s02_1.jpg])]
+after selection: [[s01_1.jpg], [s02_1.jpg, s02_t80.jpg]]
+url 302 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin
+url 302 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin
+url 302 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin
+url 302 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin
+url 302 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+url 302 https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin
+url 302 https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx
+[four_speakers.wav n=0] status=done err=null time=740s speakers=[0, 1, 2, 3]
+  turns: [{"start":0.3178437650203705,"end":6.865344047546387,"speaker":0},{"start":7.017219066619873,"end":10.746594429016113,"speaker":1},{"start":11.455344200134277,"end":13.632219314575195,"speaker":1},{"start":13.750344276428223,"end":17.040969848632812,"speaker":2},{"start":22.13722038269043,"end":24.837221145629883,"speaker":0},{"start":27.638471603393555,"end":29.477846145629883,"speaker":3},{"start":30.0009708404541,"end":31.553470611572266,"speaker":3},{"start":33.679718017578125,"end":37.932220458984375,"speaker":3},{"start":48.04034423828125,"end":50.47034454345703,"speaker":2},{"start":52.52909469604492,"end":54.60472106933594,"speaker":0}]
+  segs: [0.6-4.3 S0] 这是一个偧视说话日之的音频 | [4.3-6.9 S0] 下面我们来播放一些偧视音频 | [6.9-8.4 S1] 在上类的时候 | [8.4-11.0 S1] 请问站在阳太上去吹风 | [11.0-12.8 S1] 看远出的灯火 | [12.8-13.8 S1] 离明看暗 | [13.8-16.1 S2] 和里面一起久过很多很多的路 | [16.1-19.1 S2] 坚持到底 | [19.1-25.2 S0] 我们下面播放一条雷均的偧视音频 | [25.2-30.6 S3] 但是我第一次班 | [30.6-31.6 S3] 连度演讲 | [31.6-36.4 S3] 今天我就深和大家聊聊 | [36.4-50.5 S2] 五大广数下队黑凡的追求 | [50.5-54.7 S0] 这个就像所有的测试影片
+[two_speakers.wav n=0] status=done err=null time=450s speakers=[0]
+  turns: [{"start":0.3178437650203705,"end":2.2247188091278076,"speaker":0},{"start":3.2709689140319824,"end":4.384718894958496,"speaker":0},{"start":5.380343914031982,"end":7.60784387588501,"speaker":0},{"start":8.147844314575195,"end":10.560969352722168,"speaker":0},{"start":12.062844276428223,"end":13.86846923828125,"speaker":1},{"start":14.391593933105469,"end":15.960968971252441,"speaker":1},{"start":18.070344924926758,"end":22.373470306396484,"speaker":1},{"start":23.605344772338867,"end":25.495346069335938,"speaker":0},{"start":26.558469772338867,"end":27.67222023010254,"speaker":0},{"start":28.6678466796875,"end":30.861595153808594,"speaker":0},{"start":31.435346603393555,"end":33.814720153808594,"speaker":0}]
+  segs: [0.3-10.4 S0] And so my fellow Americans ask not what  | [23.8-33.7 S0] And so my fellow Americans ask not what 
