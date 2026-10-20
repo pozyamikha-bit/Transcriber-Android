@@ -44,7 +44,7 @@ object Diarizer {
             embedding = SpeakerEmbeddingExtractorConfig(model = embedding.path, numThreads = threads),
             clustering = FastClusteringConfig(
                 numClusters = if (numSpeakers > 0) numSpeakers else -1,
-                threshold = 0.5f,
+                threshold = 0.6f,
             ),
             minDurationOn = 0.3f,
             minDurationOff = 0.5f,

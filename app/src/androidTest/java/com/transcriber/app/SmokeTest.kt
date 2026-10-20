@@ -132,15 +132,17 @@ class SmokeTest {
     fun d_speakersFour() {
         // эталонная запись sherpa-onnx: 4 человека
         val j = speakersRun("four_speakers.wav", "zh", 0)
-        assertTrue("найдено спикеров: ${j.speakers}", j.speakers.size in 3..5)
+        assertEquals("найдено спикеров: ${j.speakers}", 4, j.speakers.size)
         ctx.app.jobs.renameSpeaker(j.id, 0, "Анна")
         val txt = File(ctx.app.jobs.dir(j.id), "result.txt").readText()
         assertTrue(txt.contains("Анна: "))
     }
 
     @Test
-    fun e_speakersSynthetic() {
-        speakersRun("two_speakers.wav", "en", 0)
-        speakersRun("two_speakers.wav", "en", 2)
+    fun e_speakersTwo() {
+        val j = speakersRun("two_speakers.wav", "en", 0)
+        assertEquals("найдено спикеров: ${j.speakers}", 2, j.speakers.size)
+        // первая и последняя фразы — Кеннеди
+        assertEquals(j.segments.first().speaker, j.segments.last().speaker)
     }
 }

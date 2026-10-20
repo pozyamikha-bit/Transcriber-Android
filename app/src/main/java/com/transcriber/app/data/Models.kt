@@ -22,9 +22,11 @@ object Models {
     private const val VAD_FILE = "ggml-silero-v5.1.2.bin"
     private const val VAD_URL = "https://huggingface.co/ggml-org/whisper-vad/resolve/main/$VAD_FILE"
 
-    private const val SPEAKER_FILE = "wespeaker_en_voxceleb_resnet34_LM.onnx"
+    // CAM++ (3D-Speaker, обучена на китайской и английской речи): на тестах разделяет голоса
+    // заметно надёжнее VoxCeleb-моделей; порог 0.5–0.7 даёт одинаковый результат
+    private const val SPEAKER_FILE = "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx"
     const val SPEAKER_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/$SPEAKER_FILE"
-    const val SPEAKER_MB = 26
+    const val SPEAKER_MB = 28
 
     fun speakerFile(ctx: Context) = File(dir(ctx), SPEAKER_FILE)
 
