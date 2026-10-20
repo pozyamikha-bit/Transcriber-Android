@@ -141,8 +141,10 @@ class SmokeTest {
     @Test
     fun e_speakersTwo() {
         val j = speakersRun("two_speakers.wav", "en", 0)
-        assertEquals("найдено спикеров: ${j.speakers}", 2, j.speakers.size)
-        // первая и последняя фразы — Кеннеди
-        assertEquals(j.segments.first().speaker, j.segments.last().speaker)
+        // китайскую речь в середине английский Whisper пропускает, поэтому проверяем разметку голосов
+        val turns = org.json.JSONArray(File(ctx.app.jobs.dir(j.id), "speakers.json").readText())
+        val ids = (0 until turns.length()).map { turns.getJSONObject(it).getInt("speaker") }
+        assertEquals("голоса: $ids", 2, ids.distinct().size)
+        assertEquals(ids.first(), ids.last())
     }
 }
