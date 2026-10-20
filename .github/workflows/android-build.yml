@@ -28,7 +28,7 @@ jobs:
           curl -sSfL -o sherpa.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/$V/sherpa-onnx-$V-android.tar.bz2
           tar xjf sherpa.tar.bz2
           mkdir -p app/src/main/jniLibs
-          for a in arm64-v8a x86_64; do mkdir -p app/src/main/jniLibs/$a; cp jniLibs/$a/*.so app/src/main/jniLibs/$a/; done
+          for a in arm64-v8a x86_64; do mkdir -p app/src/main/jniLibs/$a; cp jniLibs/$a/libsherpa-onnx-jni.so jniLibs/$a/libonnxruntime.so app/src/main/jniLibs/$a/; done
           ls -la app/src/main/jniLibs/*
           curl -sSfL -o seg.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2
           tar xjf seg.tar.bz2
