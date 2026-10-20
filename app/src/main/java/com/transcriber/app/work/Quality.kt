@@ -32,10 +32,10 @@ object Quality {
 
     /** Типичные «галлюцинации» Whisper на тишине, музыке и в конце записи. */
     private val JUNK = listOf(
-        Regex("""(?i)^\s*(продолжение следует|субтитры.*|редактор субтитров.*|корректор.*|спасибо за просмотр|подписывайтесь на канал.*|ставьте лайк.*)[.!…]*\s*$"""),
-        Regex("""(?i)^\s*(thanks for watching|thank you for watching|subtitles by.*|please subscribe.*)[.!…]*\s*$"""),
-        Regex("""(?i)dimatorzok|амара\.орг|amara\.org"""),
-        Regex("""^\s*[\[(]?(музыка|music|аплодисменты|applause|смех|laughter)[\])]?\s*$""", RegexOption.IGNORE_CASE),
+        Regex("""(?iu)^\s*(продолжение следует|субтитры.*|редактор субтитров.*|корректор.*|спасибо за просмотр|подписывайтесь на канал.*|ставьте лайк.*)[.!…]*\s*$"""),
+        Regex("""(?iu)^\s*(thanks for watching|thank you for watching|subtitles by.*|please subscribe.*)[.!…]*\s*$"""),
+        Regex("""(?iu)dimatorzok|амара\.орг|amara\.org"""),
+        Regex("""(?iu)^\s*[\[(]?(музыка|music|аплодисменты|applause|смех|laughter)[\])]?\s*$"""),
     )
 
     private fun norm(s: String) = s.lowercase().replace(Regex("""[^\p{L}\p{N} ]"""), "").trim()
