@@ -165,6 +165,20 @@ object AudioDecoder {
         return FloatArray(count) { sb.get(it) / 32768f }
     }
 
+    /** Весь PCM-файл как float, без промежуточной копии всего файла в байтах. */
+    fun readAll(pcm: File): FloatArray {
+        val total = (pcm.length() / 2).toInt()
+        val out = FloatArray(total)
+        val block = 1 shl 20
+        var pos = 0
+        while (pos < total) {
+            val n = min(block, total - pos)
+            readSamples(pcm, pos.toLong(), n).copyInto(out, pos)
+            pos += n
+        }
+        return out
+    }
+
     /**
      * Точка разреза между кусками: самое тихое полсекундное окно в последних [searchSec] секундах куска,
      * чтобы не резать слово пополам.

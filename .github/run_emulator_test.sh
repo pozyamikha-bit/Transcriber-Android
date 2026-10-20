@@ -18,6 +18,9 @@ adb shell am start -n com.transcriber.app/.MainActivity --es job "$VID"; sleep 4
 adb exec-out screencap -p > ci/screen_video_job.png
 adb shell am start -n com.transcriber.app/.MainActivity --es job "$AID"; sleep 4
 adb exec-out screencap -p > ci/screen_audio_job.png
+SID=$(cat ci/files/speakers_job.txt 2>/dev/null)
+adb shell am start -n com.transcriber.app/.MainActivity --es job "$SID"; sleep 4
+adb exec-out screencap -p > ci/screen_speakers.png
 adb shell am start -n com.transcriber.app/.MainActivity --es doc "$VID"; sleep 5
 adb exec-out screencap -p > ci/screen_doc.png
 adb shell am start -n com.transcriber.app/.MainActivity --es settings 1; sleep 4

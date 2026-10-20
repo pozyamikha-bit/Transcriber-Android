@@ -118,10 +118,19 @@ fun SettingsScreen(onBack: () -> Unit) {
                 steps = (Settings.maxThreads() - 2).coerceAtLeast(0),
             )
             Text(
-                "Больше потоков — быстрее, но телефон сильнее греется. Обычно лучше 4.",
+                "По умолчанию — число производительных ядер (${Settings.defaultThreads()}). Если поставить больше, медленные энергоэффективные ядра обычно тормозят работу.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            var vocab by remember { mutableStateOf(s.vocabulary) }
+            OutlinedTextField(
+                value = vocab, onValueChange = { vocab = it },
+                label = { Text("Словарь: имена, термины, названия") },
+                placeholder = { Text("Например: Битрикс24, Иван Петров, CRM") },
+                supportingText = { Text("Через запятую. Помогает правильно распознать редкие слова.") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            TextButton(onClick = { settings.update { it.copy(vocabulary = vocab) }; toast(ctx, "Словарь сохранён") }) { Text("Сохранить словарь") }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Пропускать тишину (VAD)")
@@ -176,6 +185,25 @@ fun SettingsScreen(onBack: () -> Unit) {
                                 }
                             }
                             if (p != null) LinearProgressIndicator(progress = { p }, modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+            }
+
+            Card(Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Модель голосов (спикеры)")
+                        Text(
+                            if (Models.speakerFile(ctx).exists()) "скачана · ${Models.speakerFile(ctx).length() / 1_000_000} МБ"
+                            else "${Models.SPEAKER_MB} МБ — скачается при первом определении спикеров",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    key(refresh) {
+                        if (Models.speakerFile(ctx).exists()) {
+                            TextButton(onClick = { Models.speakerFile(ctx).delete(); refresh++ }) { Text("Удалить") }
                         }
                     }
                 }

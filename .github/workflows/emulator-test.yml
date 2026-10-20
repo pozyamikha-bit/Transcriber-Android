@@ -20,12 +20,30 @@ jobs:
 
       - name: Test media
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng > /dev/null
           mkdir -p app/src/androidTest/assets
           cp app/src/main/cpp/whisper.cpp/samples/jfk.wav app/src/androidTest/assets/
           ffmpeg -loglevel error -f lavfi -i "color=c=red:s=640x360:d=5" -f lavfi -i "color=c=blue:s=640x360:d=7" \
             -i app/src/androidTest/assets/jfk.wav -filter_complex "[0][1]concat=n=2:v=1:a=0[v]" \
             -map "[v]" -map 2:a -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest app/src/androidTest/assets/test.mp4
+          # два голоса: Кеннеди → синтезированный женский голос → снова Кеннеди
+          espeak-ng -v en-us+f3 -s 150 -w she.wav "Thank you very much. I would like to add a few words about the budget for next year. We need to plan carefully and review every item together."
+          ffmpeg -loglevel error -i app/src/androidTest/assets/jfk.wav -i she.wav -i app/src/androidTest/assets/jfk.wav \
+            -filter_complex "[0]aresample=16000,aformat=channel_layouts=mono[a];[1]aresample=16000,aformat=channel_layouts=mono,apad=pad_dur=1[b];[2]aresample=16000,aformat=channel_layouts=mono[c];[a]apad=pad_dur=1[a1];[a1][b][c]concat=n=3:v=0:a=1[o]" \
+            -map "[o]" app/src/androidTest/assets/two_speakers.wav
+
+      - name: Fetch sherpa-onnx (speaker diarization)
+        run: |
+          V=v1.13.8
+          curl -sSfL -o sherpa.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/$V/sherpa-onnx-$V-android.tar.bz2
+          tar xjf sherpa.tar.bz2
+          mkdir -p app/src/main/jniLibs
+          for a in arm64-v8a x86_64; do mkdir -p app/src/main/jniLibs/$a; cp jniLibs/$a/*.so app/src/main/jniLibs/$a/; done
+          ls -la app/src/main/jniLibs/*
+          curl -sSfL -o seg.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2
+          tar xjf seg.tar.bz2
+          mkdir -p app/src/main/assets/diarization
+          cp sherpa-onnx-pyannote-segmentation-3-0/model.onnx app/src/main/assets/diarization/segmentation.onnx
 
       - uses: actions/setup-java@v4
         with:

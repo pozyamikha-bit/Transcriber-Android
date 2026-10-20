@@ -23,7 +23,12 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +74,7 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
     var confirmDelete by remember { mutableStateOf(false) }
     var reply by remember { mutableStateOf("") }
     var importing by remember { mutableStateOf(false) }
+    var renaming by remember { mutableStateOf<Int?>(null) }
 
     if (job == null) {
         LaunchedEffect(Unit) { onBack() }
@@ -116,12 +122,17 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
                             add(if (job.language.isEmpty()) "язык: авто" + (job.detectedLanguage?.let { " ($it)" } ?: "") else "язык: ${job.language}")
                             job.duration?.let { add("длительность ${fmtTime(it)}") }
                             if (job.segments.isNotEmpty()) add("фрагментов ${job.segments.size}")
+                            if (job.quality == "accurate") add("точный режим")
+                            job.speed?.let { add("обработано в %.1f× быстрее записи".format(it)) }
                         }
                         Text(info.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             job.message,
                             color = if (job.status == Status.ERROR) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         )
+                        job.speakerError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
                         job.postprocessError?.let {
                             Text("Ошибка обработки: $it", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         }
@@ -143,6 +154,29 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
                             ExportChip("SRT", File(dir, "result.srt"), "${job.stem}.srt")
                             ExportChip("VTT", File(dir, "result.vtt"), "${job.stem}.vtt")
                             ExportChip("JSON", File(dir, "result.json"), "${job.stem}.json")
+                        }
+                    }
+                }
+            }
+
+            if (job.speakers.isNotEmpty() && !job.isActive) {
+                item {
+                    Column {
+                        Text("Спикеры", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Нажмите, чтобы указать имя — оно попадёт в файлы и в промпт для Claude.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            job.speakers.forEach { sp ->
+                                val n = job.segments.count { it.speaker == sp }
+                                AssistChip(
+                                    onClick = { renaming = sp },
+                                    label = { Text("${job.speakerName(sp)} · $n") },
+                                    leadingIcon = { Box(Modifier.size(10.dp).background(speakerColor(sp), CircleShape)) },
+                                )
+                            }
                         }
                     }
                 }
@@ -215,6 +249,15 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
             if (job.segments.isNotEmpty()) {
                 item { HorizontalDivider() }
                 items(job.segments) { s ->
+                    Column {
+                    if (s.speaker >= 0) {
+                        Text(
+                            job.speakerName(s.speaker),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = speakerColor(s.speaker),
+                            modifier = Modifier.padding(start = 64.dp),
+                        )
+                    }
                     Row {
                         Text(
                             fmtTime(s.start),
@@ -225,9 +268,26 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
                         )
                         SelectionContainer { Text(s.text, style = MaterialTheme.typography.bodyMedium) }
                     }
+                    }
                 }
             }
         }
+    }
+
+    val sp = renaming
+    if (sp != null) {
+        var name by remember(sp) { mutableStateOf(job.speakerNames[sp].orEmpty()) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            title = { Text("Спикер ${sp + 1}") },
+            text = {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Имя") }, singleLine = true)
+            },
+            confirmButton = {
+                TextButton(onClick = { mgr.renameSpeaker(id, sp, name); renaming = null }) { Text("Сохранить") }
+            },
+            dismissButton = { TextButton(onClick = { renaming = null }) { Text("Отмена") } },
+        )
     }
 
     if (confirmDelete) {
@@ -242,3 +302,12 @@ fun JobScreen(id: String, onBack: () -> Unit, onDocument: () -> Unit) {
         )
     }
 }
+
+private val SPEAKER_COLORS = listOf(
+    androidx.compose.ui.graphics.Color(0xFF2F6FDE), androidx.compose.ui.graphics.Color(0xFFD9480F),
+    androidx.compose.ui.graphics.Color(0xFF2B8A3E), androidx.compose.ui.graphics.Color(0xFF9C36B5),
+    androidx.compose.ui.graphics.Color(0xFFC92A2A), androidx.compose.ui.graphics.Color(0xFF0B7285),
+    androidx.compose.ui.graphics.Color(0xFF8F6B00), androidx.compose.ui.graphics.Color(0xFF5F3DC4),
+)
+
+fun speakerColor(n: Int) = SPEAKER_COLORS[n % SPEAKER_COLORS.size]

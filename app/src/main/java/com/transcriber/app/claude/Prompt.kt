@@ -15,7 +15,9 @@ object Prompt {
             "Транскрипт получен автоматическим распознаванием и может содержать ошибки в терминах и именах: " +
             "исправляй очевидные ошибки по контексту. " +
             "Для каждого раздела укажи start — секунду, с которой докладчик начинает эту тему или шаг " +
-            "(значение из меток времени транскрипта). Разделы идут в хронологическом порядке."
+            "(значение из меток времени транскрипта). Разделы идут в хронологическом порядке. " +
+            "Если перед репликами указаны спикеры (имена или «Спикер N»), учитывай, кто что сказал, " +
+            "и называй участников так же."
 
     val SCHEMA: JSONObject
         get() = JSONObject(
@@ -58,11 +60,13 @@ object Prompt {
 - Других полей не добавляй.
 """.trim()
 
-    fun transcriptForLlm(segments: List<Segment>) =
-        segments.joinToString("\n") { "[${it.start.toInt()}] ${it.text}" }
+    fun transcriptForLlm(segments: List<Segment>, name: (Int) -> String = { "Спикер ${it + 1}" }) =
+        segments.joinToString("\n") {
+            "[${it.start.toInt()}] " + (if (it.speaker >= 0) "${name(it.speaker)}: " else "") + it.text
+        }
 
-    fun build(segments: List<Segment>, presetPrompt: String) =
-        "$SYSTEM\n\nЗАДАНИЕ\n$presetPrompt\n\nФОРМАТ ОТВЕТА\n$MANUAL_FORMAT\n\nТРАНСКРИПТ\n${transcriptForLlm(segments)}\n"
+    fun build(segments: List<Segment>, presetPrompt: String, name: (Int) -> String = { "Спикер ${it + 1}" }) =
+        "$SYSTEM\n\nЗАДАНИЕ\n$presetPrompt\n\nФОРМАТ ОТВЕТА\n$MANUAL_FORMAT\n\nТРАНСКРИПТ\n${transcriptForLlm(segments, name)}\n"
 
     /** Достаёт документ из ответа Claude: терпим к ```json-обёртке и тексту вокруг. */
     fun parseReply(text: String): Doc {

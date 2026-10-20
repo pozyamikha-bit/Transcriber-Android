@@ -6,3 +6,5 @@ local.properties
 .cxx/
 app/.cxx/
 app/src/main/cpp/whisper.cpp/
+app/src/main/jniLibs/
+app/src/main/assets/diarization/

@@ -3,7 +3,7 @@ package com.transcriber.app.data
 import org.json.JSONArray
 import org.json.JSONObject
 
-data class Segment(val start: Double, val end: Double, val text: String)
+data class Segment(val start: Double, val end: Double, val text: String, val speaker: Int = -1)
 
 object Status {
     const val QUEUED = "queued"
@@ -34,7 +34,17 @@ data class Job(
     val hasDocument: Boolean = false,
     val postprocessError: String? = null,
     val segments: List<Segment> = emptyList(),
+    val diarize: Boolean = false,
+    val numSpeakers: Int = 0,
+    val speakerNames: Map<Int, String> = emptyMap(),
+    val quality: String = "balanced",
+    val speakerError: String? = null,
+    /** Во сколько раз обработка быстрее длительности записи. */
+    val speed: Double? = null,
 ) {
+    fun speakerName(n: Int) = speakerNames[n]?.takeIf { it.isNotBlank() } ?: "Спикер ${n + 1}"
+    val speakers get() = segments.map { it.speaker }.filter { it >= 0 }.distinct().sorted()
+
     val isActive get() = status in Status.ACTIVE
     val stem get() = name.substringBeforeLast('.').ifBlank { "transcript" }
 
@@ -47,6 +57,10 @@ data class Job(
         put("created", created); put("has_document", hasDocument)
         put("postprocess_error", postprocessError ?: JSONObject.NULL)
         put("segments", segmentsToJson(segments))
+        put("diarize", diarize); put("num_speakers", numSpeakers); put("quality", quality)
+        put("speaker_error", speakerError ?: JSONObject.NULL)
+        put("speed", speed ?: JSONObject.NULL)
+        put("speaker_names", JSONObject().apply { speakerNames.forEach { (k, v) -> put(k.toString(), v) } })
     }
 
     companion object {
@@ -66,15 +80,27 @@ data class Job(
             hasDocument = o.optBoolean("has_document"),
             postprocessError = if (o.isNull("postprocess_error")) null else o.optString("postprocess_error"),
             segments = segmentsFromJson(o.optJSONArray("segments") ?: JSONArray()),
+            diarize = o.optBoolean("diarize"),
+            numSpeakers = o.optInt("num_speakers"),
+            quality = o.optString("quality", "balanced"),
+            speakerError = if (o.isNull("speaker_error")) null else o.optString("speaker_error"),
+            speed = if (o.isNull("speed")) null else o.optDouble("speed"),
+            speakerNames = o.optJSONObject("speaker_names")?.let { n ->
+                n.keys().asSequence().associate { it.toInt() to n.getString(it) }
+            } ?: emptyMap(),
         )
 
         fun segmentsToJson(segs: List<Segment>) = JSONArray().apply {
-            segs.forEach { put(JSONObject().put("start", it.start).put("end", it.end).put("text", it.text)) }
+            segs.forEach {
+                val o = JSONObject().put("start", it.start).put("end", it.end).put("text", it.text)
+                if (it.speaker >= 0) o.put("speaker", it.speaker)
+                put(o)
+            }
         }
 
         fun segmentsFromJson(a: JSONArray) = List(a.length()) {
             val s = a.getJSONObject(it)
-            Segment(s.getDouble("start"), s.getDouble("end"), s.getString("text"))
+            Segment(s.getDouble("start"), s.getDouble("end"), s.getString("text"), s.optInt("speaker", -1))
         }
     }
 }

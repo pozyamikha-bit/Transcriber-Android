@@ -108,7 +108,10 @@ class JobManager(private val app: Context, private val settings: Settings) {
         return uri.lastPathSegment?.substringAfterLast('/') ?: "file"
     }
 
-    suspend fun create(uri: Uri, model: String, preset: String, language: String): String = withContext(Dispatchers.IO) {
+    suspend fun create(
+        uri: Uri, model: String, preset: String, language: String,
+        diarize: Boolean = false, numSpeakers: Int = 0, quality: String = "balanced",
+    ): String = withContext(Dispatchers.IO) {
         val name = displayName(uri)
         val id = UUID.randomUUID().toString().replace("-", "").take(12)
         val d = dir(id).apply { mkdirs() }
@@ -125,6 +128,7 @@ class JobManager(private val app: Context, private val settings: Settings) {
         val job = Job(
             id = id, name = name, input = input, model = model, preset = preset,
             language = if (language == "auto") "" else language,
+            diarize = diarize, numSpeakers = numSpeakers, quality = quality,
         )
         synchronized(lock) { _jobs.value = listOf(job) + _jobs.value }
         save(id)
@@ -206,11 +210,15 @@ class JobManager(private val app: Context, private val settings: Settings) {
             if (isCancelled()) throw CancellationException()
 
             update(id, true) { it.copy(status = Status.RUNNING, message = "Распознавание…") }
-            val segs = transcribe(id, ctx, pcm, j0.language, vad, isCancelled)
+            val t0 = System.currentTimeMillis()
+            var segs = Quality.clean(transcribe(id, ctx, pcm, j0, vad, isCancelled))
             val lang = WhisperLib.detectedLanguage(ctx)
+            update(id) { it.copy(segments = segs, detectedLanguage = lang.ifEmpty { null }) }
+            if (j0.diarize && segs.isNotEmpty()) segs = diarize(id, pcm, dur, segs, isCancelled)
             pcm.delete()
-            Subtitles.writeAll(segs, d)
-            update(id, true) { it.copy(progress = 1f, detectedLanguage = lang.ifEmpty { null }) }
+            val secs = (System.currentTimeMillis() - t0) / 1000.0
+            update(id, true) { it.copy(segments = segs, progress = 1f, speed = if (secs > 0) dur / secs else null) }
+            Subtitles.writeAll(job(id)!!, d)
 
             val preset = Presets.get(app, j0.preset)
             keepVideo = preset.usesClaude && segs.isNotEmpty()
@@ -239,9 +247,44 @@ class JobManager(private val app: Context, private val settings: Settings) {
         }
     }
 
+    private fun diarize(id: String, pcm: File, dur: Double, segs: List<Segment>, isCancelled: () -> Boolean): List<Segment> {
+        val j = job(id)!!
+        if (dur > Diarizer.MAX_SECONDS) {
+            update(id) { it.copy(speakerError = "Запись длиннее 3 часов — спикеры не определялись") }
+            return segs
+        }
+        return try {
+            update(id) { it.copy(message = "Определение спикеров…", progress = 0f) }
+            val samples = AudioDecoder.readAll(pcm)
+            val turns = Diarizer.run(app, samples, j.numSpeakers, settings.value.threads.coerceIn(1, Settings.maxThreads()), { p ->
+                update(id) { it.copy(message = "Определение спикеров… ${pct(p)}", progress = p) }
+            }, isCancelled)
+            Diarizer.assign(segs, turns)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            val msg = if (e is OutOfMemoryError) "не хватило памяти" else (e.message ?: e.javaClass.simpleName)
+            update(id) { it.copy(speakerError = "Спикеры не определены: $msg") }
+            segs
+        }
+    }
+
+    /** Переименовать спикера; файлы транскрипта пересобираются с новыми именами. */
+    fun renameSpeaker(id: String, speaker: Int, name: String) {
+        update(id, true) { j ->
+            val names = j.speakerNames.toMutableMap()
+            if (name.isBlank()) names.remove(speaker) else names[speaker] = name.trim()
+            j.copy(speakerNames = names)
+        }
+        job(id)?.let { j -> if (!j.isActive && j.segments.isNotEmpty()) Subtitles.writeAll(j, dir(id)) }
+    }
+
     private fun transcribe(
-        id: String, ctx: Long, pcm: File, language: String, vad: File?, isCancelled: () -> Boolean,
+        id: String, ctx: Long, pcm: File, j0: Job, vad: File?, isCancelled: () -> Boolean,
     ): List<Segment> {
+        val language = j0.language
+        val q = Quality.params(j0.quality)
+        val prompt = Quality.prompt(language, settings.value.vocabulary)
         val rate = AudioDecoder.RATE
         val total = pcm.length() / 2
         val chunk = rate * 60L * 10 // по 10 минут — не держим в памяти весь файл
@@ -271,7 +314,10 @@ class JobManager(private val app: Context, private val settings: Settings) {
                 }
             }
             if (AudioDecoder.rms(samples) > 0.0003) {
-                val rc = WhisperLib.transcribe(ctx, samples, language.ifEmpty { null }, threads, from.toDouble() / rate, vad?.path, cb)
+                val rc = WhisperLib.transcribe(
+                    ctx, samples, language.ifEmpty { null }, threads, from.toDouble() / rate, vad?.path,
+                    q.beamSize, q.bestOf, q.temperatureInc, prompt, cb,
+                )
                 if (rc == -200 || isCancelled()) throw CancellationException()
                 if (rc != 0) throw IOException("Ошибка распознавания (код $rc)")
             }
@@ -290,7 +336,7 @@ class JobManager(private val app: Context, private val settings: Settings) {
         update(id, true) { it.copy(status = Status.POSTPROCESSING, message = "Структурирование через Claude…", postprocessError = null) }
         try {
             val s = settings.value
-            val doc = ClaudeClient.structure(s.apiKey, s.claudeModel, j.segments, preset.prompt, isCancelled)
+            val doc = ClaudeClient.structure(s.apiKey, s.claudeModel, j.segments, preset.prompt, isCancelled, j::speakerName)
             DocBuilder.finalize(doc, preset, File(dir(id), j.input), dir(id)) { msg -> update(id) { it.copy(message = msg) } }
             update(id, true) { it.copy(status = Status.DONE, message = "Готово", hasDocument = true) }
         } catch (e: CancellationException) {
@@ -323,7 +369,7 @@ class JobManager(private val app: Context, private val settings: Settings) {
 
     fun prompt(id: String): String {
         val j = job(id) ?: return ""
-        return Prompt.build(j.segments, Presets.get(app, j.preset).prompt)
+        return Prompt.build(j.segments, Presets.get(app, j.preset).prompt, j::speakerName)
     }
 
     fun videoAvailable(id: String): Boolean {

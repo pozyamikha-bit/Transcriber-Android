@@ -22,6 +22,19 @@ object Models {
     private const val VAD_FILE = "ggml-silero-v5.1.2.bin"
     private const val VAD_URL = "https://huggingface.co/ggml-org/whisper-vad/resolve/main/$VAD_FILE"
 
+    private const val SPEAKER_FILE = "wespeaker_en_voxceleb_resnet34_LM.onnx"
+    const val SPEAKER_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/$SPEAKER_FILE"
+    const val SPEAKER_MB = 26
+
+    fun speakerFile(ctx: Context) = File(dir(ctx), SPEAKER_FILE)
+
+    /** Модель голосов для определения спикеров (скачивается при первом использовании). */
+    fun ensureSpeakerModel(ctx: Context, progress: (Float) -> Unit, cancelled: () -> Boolean): File {
+        val f = speakerFile(ctx)
+        if (!f.exists()) download(SPEAKER_URL, f, progress, cancelled)
+        return f
+    }
+
     fun get(id: String) = ALL.firstOrNull { it.id == id } ?: ALL[2]
 
     fun dir(ctx: Context) = File(ctx.filesDir, "models").apply { mkdirs() }

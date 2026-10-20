@@ -19,6 +19,7 @@ object ClaudeClient {
         segments: List<Segment>,
         presetPrompt: String,
         cancelled: () -> Boolean,
+        name: (Int) -> String = { "Спикер ${it + 1}" },
     ): Doc {
         val body = JSONObject().apply {
             put("model", model)
@@ -30,7 +31,7 @@ object ClaudeClient {
             put("system", Prompt.SYSTEM)
             put("messages", JSONArray().put(JSONObject().apply {
                 put("role", "user")
-                put("content", "Задание:\n$presetPrompt\n\nТранскрипт:\n${Prompt.transcriptForLlm(segments)}")
+                put("content", "Задание:\n$presetPrompt\n\nТранскрипт:\n${Prompt.transcriptForLlm(segments, name)}")
             }))
         }
         val conn = (URL(URL_MESSAGES).openConnection() as HttpURLConnection).apply {

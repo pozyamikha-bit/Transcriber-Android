@@ -102,7 +102,8 @@ Java_com_transcriber_app_whisper_WhisperLib_resetCancel(JNIEnv *, jobject) {
 JNIEXPORT jint JNICALL
 Java_com_transcriber_app_whisper_WhisperLib_transcribe(
         JNIEnv *env, jobject, jlong ptr, jfloatArray samples, jstring language,
-        jint threads, jdouble offset, jstring vad_model, jobject callback) {
+        jint threads, jdouble offset, jstring vad_model, jint beam_size, jint best_of,
+        jfloat temperature_inc, jstring prompt, jobject callback) {
     auto *ctx = reinterpret_cast<whisper_context *>(ptr);
     if (!ctx) return -100;
 
@@ -125,7 +126,22 @@ Java_com_transcriber_app_whisper_WhisperLib_transcribe(
         env->ReleaseStringUTFChars(vad_model, v);
     }
 
-    whisper_full_params p = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+    std::string initial_prompt;
+    if (prompt) {
+        const char *pr = env->GetStringUTFChars(prompt, nullptr);
+        initial_prompt = pr;
+        env->ReleaseStringUTFChars(prompt, pr);
+    }
+
+    whisper_full_params p = whisper_full_default_params(
+            beam_size > 1 ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY);
+    if (beam_size > 1) p.beam_search.beam_size = beam_size;
+    p.greedy.best_of = best_of > 0 ? best_of : 1;
+    p.temperature_inc = temperature_inc;
+    if (!initial_prompt.empty()) {
+        p.initial_prompt = initial_prompt.c_str();
+        p.carry_initial_prompt = true;
+    }
     p.n_threads = threads;
     p.language = lang.c_str();
     p.translate = false;

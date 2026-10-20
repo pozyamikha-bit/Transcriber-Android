@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import androidx.core.content.ContextCompat
 import com.transcriber.app.app
 import com.transcriber.app.data.Models
 import com.transcriber.app.data.Presets
+import com.transcriber.app.data.Settings
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,6 +59,9 @@ fun NewJobScreen(initialUri: Uri?, onBack: () -> Unit, onCreated: (String) -> Un
     var preset by remember { mutableStateOf(s.preset) }
     var model by remember { mutableStateOf(s.model) }
     var lang by remember { mutableStateOf(s.language) }
+    var quality by remember { mutableStateOf(s.quality) }
+    var diarize by remember { mutableStateOf(s.diarize) }
+    var numSpeakers by remember { mutableStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     val name = remember(uri) { uri?.let { ctx.app.jobs.displayName(it) } }
     val presets = remember { Presets.all(ctx) }
@@ -66,10 +71,10 @@ fun NewJobScreen(initialUri: Uri?, onBack: () -> Unit, onCreated: (String) -> Un
     fun start() {
         val u = uri ?: return
         busy = true
-        ctx.app.settings.update { it.copy(preset = preset, model = model, language = lang) }
+        ctx.app.settings.update { it.copy(preset = preset, model = model, language = lang, quality = quality, diarize = diarize) }
         scope.launch {
             try {
-                val id = ctx.app.jobs.create(u, model, preset, lang)
+                val id = ctx.app.jobs.create(u, model, preset, lang, diarize, numSpeakers, quality)
                 onCreated(id)
             } catch (e: Exception) {
                 toast(ctx, e.message ?: "Ошибка")
@@ -110,6 +115,26 @@ fun NewJobScreen(initialUri: Uri?, onBack: () -> Unit, onCreated: (String) -> Un
                 model, { model = it }, Modifier.fillMaxWidth(),
             )
             Dropdown("Язык записи", LANGUAGES, lang, { lang = it }, Modifier.fillMaxWidth())
+            Dropdown("Качество распознавания", Settings.QUALITY, quality, { quality = it }, Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Определить спикеров")
+                    Text(
+                        if (Models.speakerFile(ctx).exists()) "Кто что сказал: «Спикер 1», «Спикер 2»… — потом можно переименовать"
+                        else "Кто что сказал. При первом запуске скачается модель голосов (${Models.SPEAKER_MB} МБ)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = diarize, onCheckedChange = { diarize = it })
+            }
+            if (diarize) {
+                Dropdown(
+                    "Сколько человек говорит",
+                    listOf(0 to "Определить автоматически") + (2..8).map { it to "$it" },
+                    numSpeakers, { numSpeakers = it }, Modifier.fillMaxWidth(),
+                )
+            }
             if (presets.firstOrNull { it.id == preset }?.usesClaude == true) {
                 Text(
                     if (s.apiKey.isBlank()) "Документ: без API-ключа приложение подготовит промпт — его нужно отправить в Claude и вставить ответ. Ключ можно указать в настройках."

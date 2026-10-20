@@ -24,6 +24,10 @@ object WhisperLib {
         threads: Int,
         offset: Double,
         vadModel: String?,
+        beamSize: Int,
+        bestOf: Int,
+        temperatureInc: Float,
+        prompt: String?,
         callback: Callback,
     ): Int
     external fun detectedLanguage(ptr: Long): String

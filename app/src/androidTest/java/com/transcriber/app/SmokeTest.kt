@@ -98,8 +98,10 @@ class SmokeTest {
     @Test
     fun c_modelUrls() {
         // все модели из списка действительно лежат на HuggingFace
-        val urls = Models.ALL.map { "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${it.file}" } +
-            "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin"
+        val urls = Models.ALL.map { "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${it.file}" } + listOf(
+            "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin",
+            Models.SPEAKER_URL,
+        )
         val bad = urls.filter { u ->
             val c = java.net.URL(u).openConnection() as java.net.HttpURLConnection
             c.requestMethod = "HEAD"
@@ -110,5 +112,25 @@ class SmokeTest {
             code !in 200..399
         }
         assertTrue("недоступны: $bad", bad.isEmpty())
+    }
+
+    @Test
+    fun d_speakers() = runBlocking {
+        val wav = asset("two_speakers.wav")
+        val t = System.currentTimeMillis()
+        val id = ctx.app.jobs.create(Uri.fromFile(wav), "tiny", "transcript", "en", diarize = true, numSpeakers = 0, quality = "accurate")
+        val j = waitIdle(id)
+        log("speakers: status=${j.status} msg=${j.message} err=${j.speakerError} time=${(System.currentTimeMillis() - t) / 1000}s speed=${j.speed}")
+        log("speakers text: " + j.segments.joinToString(" | ") { "[%.1f-%.1f S%d] %s".format(it.start, it.end, it.speaker, it.text) })
+        assertEquals(j.message, Status.DONE, j.status)
+        assertEquals(null, j.speakerError)
+        assertTrue("найдено спикеров: ${j.speakers}", j.speakers.size >= 2)
+        // первый и последний фрагменты — один и тот же человек (Кеннеди)
+        assertEquals(j.segments.first().speaker, j.segments.last().speaker)
+        ctx.app.jobs.renameSpeaker(id, 0, "Кеннеди")
+        val txt = File(ctx.app.jobs.dir(id), "result.txt").readText()
+        log("txt:\n$txt")
+        assertTrue(txt.startsWith("Кеннеди: "))
+        File(out, "speakers_job.txt").writeText(id)
     }
 }
