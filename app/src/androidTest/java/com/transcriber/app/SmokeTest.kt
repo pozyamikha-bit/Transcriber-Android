@@ -20,7 +20,7 @@ import java.util.zip.ZipFile
 class SmokeTest {
     private val ctx = InstrumentationRegistry.getInstrumentation().targetContext
     private val testCtx = InstrumentationRegistry.getInstrumentation().context
-    private val out = File(ctx.getExternalFilesDir(null), "ci").apply { mkdirs() }
+    private val out = File(ctx.filesDir, "ci").apply { mkdirs() }
 
     private fun asset(name: String): File {
         val f = File(ctx.cacheDir, name)

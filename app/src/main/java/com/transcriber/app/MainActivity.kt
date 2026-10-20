@@ -78,6 +78,8 @@ class MainActivity : ComponentActivity() {
     private fun handle(intent: Intent?) {
         intent ?: return
         intent.getStringExtra(EXTRA_JOB)?.let { pendingRoute = "job/$it"; return }
+        intent.getStringExtra("doc")?.let { pendingRoute = "doc/$it"; return }
+        if (intent.hasExtra("settings")) { pendingRoute = "settings"; return }
         val uri: Uri? = when (intent.action) {
             Intent.ACTION_SEND -> if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             else intent.getParcelableExtra(Intent.EXTRA_STREAM)
